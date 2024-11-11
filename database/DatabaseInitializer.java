@@ -33,8 +33,11 @@ public class DatabaseInitializer {
                     "UserID INT NOT NULL, " +
                     "ReservationDate TEXT NOT NULL, " + // DATETIME as TEXT in SQLite
                     "ReservationCode TEXT NOT NULL, " +
+                    "Price REAL NOT NULL, " +
                     "FOREIGN KEY (FlightID) REFERENCES Flights(FlightID), " +
                     "FOREIGN KEY (UserID) REFERENCES Users(userID));";
+
+
 
             stmt.execute(usersTable);
             stmt.execute(flightsTable);
