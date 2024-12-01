@@ -31,11 +31,15 @@ public class LoginScreen extends JFrame{
         JLabel usernameLabel= new JLabel("Username");
         usernameField= new JTextField();
 
+
+
         JLabel passwordLabel= new JLabel("Password: ");
         passwordField= new JPasswordField();
 
         loginButton = new JButton("Login:");
         messageLabel= new JLabel();
+
+        usernameField =new JTextField();
 
         //Panel
         panel.add(usernameLabel);
@@ -77,7 +81,8 @@ public class LoginScreen extends JFrame{
         //Database connection SQLite
         String dbUrl="jdbc:sqlite:database/airlinereservation.db";
         try(Connection connection = DriverManager.getConnection(dbUrl)){
-            String query= "SELECT * FROM Users WHERE FName=? AND password=?";
+            //Modified query to concatenate FName and LName
+            String query= "SELECT * FROM Users WHERE (FName || LName)=? AND password=?";
             try(PreparedStatement pst = connection.prepareStatement(query)){
                 pst.setString(1, username);
                 pst.setString(2, password);

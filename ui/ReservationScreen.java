@@ -1,6 +1,7 @@
 package ui;
 
 import javax.swing.*;
+import java.awt.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -14,6 +15,54 @@ public class ReservationScreen extends javax.swing.JFrame {
     private static final String URL = "jdbc:sqlite:database/airlineReservation.db";
     private static final int USER_ID = 1; // For now, the UserID will be 1 by default !
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+    private JLabel priceLabel;
+
+    //Fetch Prices
+    private double fetchPrice(String departure, String arrival, String category) {
+        String priceColumn;
+        switch (category.toLowerCase()) {
+            case "basic":
+                priceColumn = "basicPrice";
+                break;
+            case "economic":
+                priceColumn = "economicPrice";
+                break;
+            case "premium":
+                priceColumn = "premiumPrice";
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid category: " + category);
+        }
+
+        String query = "SELECT " + priceColumn + " FROM Flights WHERE departureAirport = ? AND arrivalAirport = ?";
+        try (Connection conn = DriverManager.getConnection(URL);
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, departure);
+            stmt.setString(2, arrival);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble(priceColumn); // Return the fetched price
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1; // Return -1 if no price is found
+    }
+    private void updatePrice() {
+        String departure = (String) departureComboBox.getSelectedItem();
+        String arrival = (String) arrivalComboBox.getSelectedItem();
+        if (departure == null || arrival == null || departure.equals(arrival)) {
+            priceLabel.setText("Price: $0.00"); // Reset to default
+            return;
+        }
+        double price = fetchPrice(departure, arrival, priceRange); // Fetch price dynamically
+        if (price != -1) {
+            priceLabel.setText("Price: $" + price); // Display the price
+        } else {
+            priceLabel.setText("Price not available"); // Handle no price found
+        }
+    }
+
 
     public ReservationScreen() {
         initComponents();
@@ -25,6 +74,8 @@ public class ReservationScreen extends javax.swing.JFrame {
 
         priceRangeButtonGroup = new javax.swing.ButtonGroup();
         tabbedPane = new javax.swing.JTabbedPane();
+        //Price Label init
+        priceLabel = new javax.swing.JLabel();
         createReservationPane = new javax.swing.JPanel();
         departureComboBox = new javax.swing.JComboBox<>();
         arrivalComboBox = new javax.swing.JComboBox<>();
@@ -44,7 +95,7 @@ public class ReservationScreen extends javax.swing.JFrame {
         cancelLabel = new javax.swing.JLabel();
         cancelComboBox = new javax.swing.JComboBox<>();
         cancelButton = new javax.swing.JButton();
-
+        createReservationPane.add(priceLabel);
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         // Getting values for reservation pane combo boxes
@@ -54,8 +105,10 @@ public class ReservationScreen extends javax.swing.JFrame {
         String[][] reservationArray = reservationList.toArray(new String[0][]); //Array for the table
 
         departureComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(destinationArray));
+        departureComboBox.addActionListener(evt->updatePrice());//New Listener
 
         arrivalComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(destinationArray));
+        arrivalComboBox.addActionListener(evt->updatePrice());
 
         departureLabel.setText("Select departure airport");
 
@@ -65,22 +118,27 @@ public class ReservationScreen extends javax.swing.JFrame {
 
         dateLabel.setText("Enter date");
 
+
+
         priceRangeButtonGroup.add(basicPriceRadioButton);
         basicPriceRadioButton.setText("Basic");
-        basicPriceRadioButton.addActionListener(evt -> priceRange = "basic");
+        basicPriceRadioButton.addActionListener(evt ->{ priceRange = "basic";updatePrice();} );// Addes update price method
         basicPriceRadioButton.setSelected(true);
 
         priceRangeButtonGroup.add(economicPriceRadioButton);
         economicPriceRadioButton.setText("Economic");
-        economicPriceRadioButton.addActionListener(evt -> priceRange = "economic");
+        economicPriceRadioButton.addActionListener(evt -> {priceRange = "economic";updatePrice();});//Added update price method
 
         priceRangeButtonGroup.add(premiumPriceRadioButton);
         premiumPriceRadioButton.setText("Premium");
-        premiumPriceRadioButton.addActionListener(evt -> priceRange = "premium");
+        premiumPriceRadioButton.addActionListener(evt -> {priceRange = "premium"; updatePrice();});//Added update price method
 
         createdConfirmationLabel.setText(""); // not used
 
         createReservationButton.setText("Create Reservation");
+        priceLabel = new JLabel("Price: $0.00"); // Default price display
+        createReservationPane.add(priceLabel);  // Add it to the pane
+
 
         createReservationButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -130,9 +188,9 @@ public class ReservationScreen extends javax.swing.JFrame {
             }
         });
 
-
         javax.swing.GroupLayout createReservationPaneLayout = new javax.swing.GroupLayout(createReservationPane);
         createReservationPane.setLayout(createReservationPaneLayout);
+
 
         // All the formatting for the Reservation Pane
 
@@ -159,13 +217,17 @@ public class ReservationScreen extends javax.swing.JFrame {
                                         .addComponent(premiumPriceRadioButton)
                                         .addComponent(economicPriceRadioButton)
                                         .addComponent(basicPriceRadioButton)
+
                                         .addComponent(dateTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addGroup(createReservationPaneLayout.createSequentialGroup()
                                                 .addGap(44, 44, 44)
                                                 .addComponent(dateLabel))
                                         .addComponent(createdConfirmationLabel, javax.swing.GroupLayout.Alignment.CENTER)) // Added the label here
                                 .addGap(189, 189, 189))
-        );
+                        .addGroup(createReservationPaneLayout.createSequentialGroup()
+                                .addGap(50, 50, 50)
+                                .addComponent(priceLabel))
+    );
 
         createReservationPaneLayout.setVerticalGroup(
                 createReservationPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -188,11 +250,14 @@ public class ReservationScreen extends javax.swing.JFrame {
                                 .addComponent(economicPriceRadioButton)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(premiumPriceRadioButton)
+
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 55, Short.MAX_VALUE)
+                        .addGroup(createReservationPaneLayout.createSequentialGroup()
                                 .addComponent(createReservationButton, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED) // Add space between button and label
                                 .addComponent(createdConfirmationLabel) // Add the label here
                                 .addGap(24, 24, 24))
+                        .addComponent(priceLabel))
         );
 
 
@@ -330,6 +395,9 @@ public class ReservationScreen extends javax.swing.JFrame {
     private javax.swing.JScrollPane viewReservationsScrollPane;
     private javax.swing.JTable viewReservationsTable;
     private javax.swing.JLabel createdConfirmationLabel;
+    private JComboBox<String> paymentMethodComboBox; // Dropdown for payment Method
+    private JButton confirmPaymentButton;//Button to confirm payment
+    private JLabel paymentStatusLabel;//Display payment status
     // End of swing variables declaration
 
     private String priceRange = "Basic";
@@ -488,4 +556,5 @@ public class ReservationScreen extends javax.swing.JFrame {
     public void showSuccessDialog(String message) {
         JOptionPane.showMessageDialog(null, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
+
 }
