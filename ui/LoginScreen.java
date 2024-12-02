@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 
+import static ui.ReservationScreen.showErrorDialog;
 
 
 public class LoginScreen extends JFrame{
@@ -11,11 +12,14 @@ public class LoginScreen extends JFrame{
     private JPasswordField passwordField;
     private JButton loginButton;
     private JLabel messageLabel;
+    private int loggedUser;
+    private MainMenuScreen mainMenuScreen; // passing a reference to the main menu to close it later.
 
-    public LoginScreen() {
+    public LoginScreen(MainMenuScreen mainMenuScreen) {
+        this.mainMenuScreen = mainMenuScreen;
         setTitle(" USER LOGIN");
         setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
@@ -65,35 +69,53 @@ public class LoginScreen extends JFrame{
     }
     private void handleLogin(){
         String username= usernameField.getText();
+
         char [] password= passwordField.getPassword();
         String passwordText= new String(password);
 
-        if (validateLogin(username,passwordText)) {
-            messageLabel.setText("Login was successful: ");
+        int userID = validateLogin(username, passwordText);
+
+        if (userID > 0) {
+            this.dispose();
+            JOptionPane.showMessageDialog(null, "Login Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            mainMenuScreen.dispose();
+            Main.openReservationScreen(userID);
         }
         else {
             messageLabel.setText("Login failed. Invalid Username or Password ");
-
         }
     }
-    private boolean validateLogin(String username, String password){
-        boolean isValid=false;
+
+    private int validateLogin(String username, String password){
+        int userID = -1;
         //Database connection SQLite
         String dbUrl="jdbc:sqlite:database/airlinereservation.db";
-        try(Connection connection = DriverManager.getConnection(dbUrl)){
-            //Modified query to concatenate FName and LName
-            String query= "SELECT * FROM Users WHERE (FName || LName)=? AND password=?";
-            try(PreparedStatement pst = connection.prepareStatement(query)){
-                pst.setString(1, username);
-                pst.setString(2, password);
-                ResultSet rs= pst.executeQuery();
 
-                if (rs.next()){
-                    isValid= true;
+        String[] nameParts = username.split(" ", 2);
+
+        if (nameParts.length < 2) {
+            showErrorDialog("Please enter both First Name and Last Name separated by a space.");
+            return userID;
+        }
+
+        String firstName = nameParts[0];
+        String lastName = nameParts[1];
+
+        try (Connection connection = DriverManager.getConnection(dbUrl)) {
+            String query = "SELECT userID FROM Users WHERE FName=? AND LName=? AND password=?";
+            try (PreparedStatement pst = connection.prepareStatement(query)) {
+                pst.setString(1, firstName);
+                pst.setString(2, lastName);
+                pst.setString(3, password);
+
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (rs.next()) {
+                        userID = rs.getInt("userID");
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
                 }
-
-            }
-            catch (SQLException e){
+            } catch (SQLException e) {
                 messageLabel.setText("Error checking credentials");
                 e.printStackTrace();
             }
@@ -101,11 +123,20 @@ public class LoginScreen extends JFrame{
             messageLabel.setText("Error connecting to the database");
             e.printStackTrace();
         }
-        return isValid;
+        return userID;
     }
+
+    public void setLoggedUser(int loggedUser) {
+        this.loggedUser = loggedUser;
+    }
+
+    public int getLoggedUser() {
+        return loggedUser;
+    }
+
     //Main
     public static void main(String[] args){
-        new LoginScreen();
+        new LoginScreen(new MainMenuScreen());
     }
 
 }

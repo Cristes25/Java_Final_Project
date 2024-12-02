@@ -1,7 +1,6 @@
 package ui;
 
 import javax.swing.*;
-import java.awt.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -13,7 +12,7 @@ import java.util.Random;
 public class ReservationScreen extends javax.swing.JFrame {
 
     private static final String URL = "jdbc:sqlite:database/airlineReservation.db";
-    private static final int USER_ID = 1; // For now, the UserID will be 1 by default !
+    private static int USER_ID;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
     private JLabel priceLabel;
 
@@ -64,7 +63,8 @@ public class ReservationScreen extends javax.swing.JFrame {
     }
 
 
-    public ReservationScreen() {
+    public ReservationScreen(int userID) {
+        USER_ID = userID;
         initComponents();
     }
 
@@ -368,7 +368,7 @@ public class ReservationScreen extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new ReservationScreen().setVisible(true);
+                new ReservationScreen(1).setVisible(true); //test user
             }
         });
     }
@@ -402,9 +402,11 @@ public class ReservationScreen extends javax.swing.JFrame {
 
     private String priceRange = "Basic";
 
-    // De aquí en adelante son métodos de Rerservation Screen Terminal
+    // Methods
 
     public static List<String> getDestinationList() {
+        //returns a List object with all the destinations in the database
+
         List<String> destinations = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(URL);
              Statement stmt = conn.createStatement()) {
@@ -423,6 +425,7 @@ public class ReservationScreen extends javax.swing.JFrame {
     public static void createReservation(String departureAirport, String arrivalAirport,
                                          int userID, String date, String reservationCode, String priceRange) {
         //Getting the flight ID using the arrival airport and departureAirport
+
         int flightID = -1; //declaring flightID outside of Try block
         double price = 0;
         String selectedPriceRange;
@@ -456,7 +459,7 @@ public class ReservationScreen extends javax.swing.JFrame {
         try (Connection conn = DriverManager.getConnection(URL);
              PreparedStatement pstmt = conn.prepareStatement(insertReservation)) {
             pstmt.setInt(1, flightID);
-            pstmt.setInt(2, 1); // The UserID will temporarily be 1
+            pstmt.setInt(2, USER_ID);
             pstmt.setString(3, date);
             pstmt.setString(4, reservationCode);
             pstmt.setDouble(5, price);
@@ -469,6 +472,8 @@ public class ReservationScreen extends javax.swing.JFrame {
     }
 
     public static String generateRandomCode() {
+        // Randomly generates a code to assign to each reservation
+
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";  // Alphanumeric characters
         StringBuilder code = new StringBuilder();
         Random random = new Random();
@@ -479,6 +484,8 @@ public class ReservationScreen extends javax.swing.JFrame {
     }
 
     public static List<String[]> getReservationList() {
+        //returns a List object with the info about the user's reservations
+
         List<String[]> reservations = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(URL);
              Statement stmt = conn.createStatement()) {
@@ -503,6 +510,8 @@ public class ReservationScreen extends javax.swing.JFrame {
     }
 
     public static String[] getCodeList(){
+        //Returns a String array with the codes for all the user's reservations for the cancel Combo box
+
         List<String> codeList = new ArrayList<>();
         codeList.add(" ");
         try (Connection connn = DriverManager.getConnection(URL);
@@ -521,6 +530,8 @@ public class ReservationScreen extends javax.swing.JFrame {
     }
 
     public static void updateReservationsTable(JTable table) {
+        // Refreshes the data at the view reservations pane.
+
         List<String[]> reservationList = getReservationList();
         String[][] data = reservationList.toArray(new String[0][]);
         String[] columnNames = {"Flight", "Date", "Price", "Code"};

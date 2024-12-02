@@ -20,7 +20,7 @@ public class RegistrationScreen extends JFrame{
     public RegistrationScreen(){
         setTitle("User Registration "); //Window Layout
         setSize(450, 320);// window size
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null); // centers window
         setLayout(new BorderLayout());
 
